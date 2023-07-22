@@ -1,6 +1,10 @@
 package main
 
 import (
+	// "time"
+
+	"time"
+
 	"github.com/KayoRonald/go-fiber-jwt-test/database"
 	"github.com/KayoRonald/go-fiber-jwt-test/middleware"
 	"github.com/KayoRonald/go-fiber-jwt-test/models"
@@ -8,7 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 
-	// "github.com/golang-jwt/jwt/v5"
+	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -91,8 +95,23 @@ func main() {
 				"status":  "err",
 			})
 		}
+		claims := jwt.MapClaims{
+			"id":    user.ID,
+			"name":  user.Name,
+			"email": user.Email,
+			"exp":   time.Now().Add(time.Hour * 24).Unix(),
+		}
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, err := token.SignedString([]byte("1122222"))
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": err.Error(),
+				"status":  "sucess",
+			})
+		}
+    c.Set("Authorization", tokenString)
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
-			"message": "Ok",
+			"message": tokenString,
 			"status":  "sucess",
 		})
 	})
