@@ -5,8 +5,9 @@ import (
 	"os"
 
 	"github.com/KayoRonald/go-fiber-jwt-test/models"
-	"gorm.io/gorm"
 	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type DbInstance struct {
@@ -17,7 +18,9 @@ var Database DbInstance
 
 
 func ConnectDB() {
-	db, err := gorm.Open(sqlite.Open("api.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("api.db"), &gorm.Config{
+    Logger: logger.Default.LogMode(logger.Info),
+  })
 
 	if err != nil {
 		log.Fatal("Failed to connect to the database! \n", err)

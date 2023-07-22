@@ -1,7 +1,6 @@
 package main
 
 import (
-
 	"github.com/KayoRonald/go-fiber-jwt-test/database"
 	"github.com/KayoRonald/go-fiber-jwt-test/middleware"
 	"github.com/KayoRonald/go-fiber-jwt-test/models"
@@ -19,9 +18,9 @@ func main() {
 	app.Use(logger.New())
 	app.Use(middleware.CorsMiddleware())
 	app.Use(middleware.Limiter())
-  // Conect Database
-  database.ConnectDB()
-  // metrics
+	// Conect Database
+	database.ConnectDB()
+	// metrics
 	app.Get("/metrics", monitor.New(monitor.Config{Title: "Metrics My API"}))
 	// Public ROUTER
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -56,18 +55,47 @@ func main() {
 				"status":  "err",
 			})
 		}
-    createUser := models.User{
-      Name: user.Name,
-      Email: user.Email,
-      Password: string(hash),
-    }
-    database.Database.Db.Create(&createUser)
+		createUser := models.User{
+			Name:     user.Name,
+			Email:    user.Email,
+			Password: string(hash),
+		}
+		database.Database.Db.Create(&createUser)
 		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 			"message": &createUser,
 			"status":  "sucess",
 		})
 	})
 
+	app.Post("/login", func(c *fiber.Ctx) error {
+		c.Accepts("application/json")
+		playload := new(models.User)
+		if err := c.BodyParser(playload); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": err.Error(),
+				"status":  "err",
+			})
+		}
+		var user models.User
+		result := database.Database.Db.Where("email = ?", playload.Email).First(&user)
+		if result.Error != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "Not exist User",
+				"status":  "err",
+			})
+		}
+		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(playload.Password))
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "Invalid password! No match :/",
+				"status":  "err",
+			})
+		}
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "Ok",
+			"status":  "sucess",
+		})
+	})
 	app.All("*", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"message": "Not Found",
