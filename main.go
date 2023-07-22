@@ -99,7 +99,7 @@ func main() {
 			"id":    user.ID,
 			"name":  user.Name,
 			"email": user.Email,
-			"exp":   time.Now().Add(time.Hour * 24).Unix(),
+			"exp":   time.Now().Add(time.Hour * 2).Unix(),
 		}
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 		tokenString, err := token.SignedString([]byte("1122222"))
