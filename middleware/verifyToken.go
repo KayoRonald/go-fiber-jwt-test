@@ -8,6 +8,12 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
+type ClaimsD struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
 func VerifyToken(c *fiber.Ctx) error {
 	var tokenString string
 	authorization := c.Get("Authorization")
@@ -20,7 +26,7 @@ func VerifyToken(c *fiber.Ctx) error {
 
 	if tokenString == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"status": "fail", 
+			"status":  "fail",
 			"message": "You are not logged in",
 		})
 	}
@@ -33,7 +39,7 @@ func VerifyToken(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"status": "fail", 
+			"status":  "fail",
 			"message": fmt.Sprintf("invalidate token: %v", err),
 		})
 	}
@@ -41,10 +47,16 @@ func VerifyToken(c *fiber.Ctx) error {
 	claims, ok := tokenByte.Claims.(jwt.MapClaims)
 	if !ok || !tokenByte.Valid {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"status": "fail", 
+			"status":  "fail",
 			"message": "invalid token claim",
 		})
 	}
-	fmt.Print(claims)
+	ClaimsD := ClaimsD{
+		ID: claims["id"].(string),
+		Name: claims["name"].(string),
+		Email: claims["email"].(string),
+	}
+	fmt.Printf("User authenticated: %#v \n", ClaimsD)
+
 	return c.Next()
 }
