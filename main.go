@@ -1,8 +1,6 @@
 package main
 
 import (
-	// "time"
-
 	"time"
 
 	"github.com/KayoRonald/go-fiber-jwt-test/database"
@@ -29,17 +27,33 @@ func main() {
 	// Public ROUTER
 	app.Get("/", func(c *fiber.Ctx) error {
 		c.Accepts("application/json")
+		user := []models.User{}
+		result := database.Database.Db.Find(&user)
+		if result.RowsAffected == 0 {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"message": "Nenhum usuário cadastrado",
+				"status":  "err",
+			})
+		}
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
 			"status":  "success",
-			"message": "Welcome to Golang, Fiber, and GORM. Router public",
+			"message": user,
 		})
 	})
 	//Private ROUTER
-	app.Get("/me", func(c *fiber.Ctx) error {
+	app.Get("/me", middleware.VerifyToken,func(c *fiber.Ctx) error {
 		c.Accepts("application/json")
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
 			"status":  "success",
 			"message": "Welcome to router private",
+		})
+	})
+	app.Get("/logout", func(c *fiber.Ctx) error {
+		c.Accepts("application/json")
+		c.ClearCookie()
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"status":  "success",
+			"message": "Logout",
 		})
 	})
 
@@ -64,7 +78,13 @@ func main() {
 			Email:    user.Email,
 			Password: string(hash),
 		}
-		database.Database.Db.Create(&createUser)
+		result := database.Database.Db.Create(&createUser)
+		if result.Error != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "Email já cadastrado! Tente outro",
+				"status":  "err",
+			})
+		}
 		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 			"message": &createUser,
 			"status":  "sucess",
@@ -101,7 +121,7 @@ func main() {
 			"email": user.Email,
 			"exp":   time.Now().Add(time.Hour * 2).Unix(),
 		}
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 		tokenString, err := token.SignedString([]byte("1122222"))
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -109,7 +129,15 @@ func main() {
 				"status":  "sucess",
 			})
 		}
-    c.Set("Authorization", tokenString)
+		c.Set("Authorization", tokenString)
+		c.Cookie(&fiber.Cookie{
+			Name:     "token",
+			Value:    tokenString,
+			Expires:  time.Now().Add(2 * time.Hour),
+			HTTPOnly: true,
+			SameSite: "lax",
+			Domain:   c.Hostname(),
+		})
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
 			"message": tokenString,
 			"status":  "sucess",
