@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/KayoRonald/go-fiber-jwt-test/database"
+	"github.com/KayoRonald/go-fiber-jwt-test/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt"
 )
@@ -51,12 +53,19 @@ func VerifyToken(c *fiber.Ctx) error {
 			"message": "invalid token claim",
 		})
 	}
+  var user models.User
+  database.Database.Db.Where("id = ?", fmt.Sprint(claims["id"])).First(&user)
+  if user.ID != claims["id"] {
+    return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"status":  "fail",
+			"message": "invalid user",
+		})
+  }
 	ClaimsD := ClaimsD{
 		ID: claims["id"].(string),
 		Name: claims["name"].(string),
 		Email: claims["email"].(string),
 	}
 	fmt.Printf("User authenticated: %#v \n", ClaimsD)
-
 	return c.Next()
 }
